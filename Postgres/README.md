@@ -419,6 +419,75 @@ SELECT * FROM t1;
 
 
 
+### Show Database Size:
+
+#### Check size of the current database:
+
+```
+SELECT pg_size_pretty(pg_database_size(current_database()));
+```
+
+
+#### Check size of a specific database:
+
+```
+SELECT pg_size_pretty(pg_database_size('postgres'));
+
+SELECT pg_size_pretty(pg_database_size('cdmsapp'));
+```
+
+
+
+#### List all databases with their sizes:
+
+```
+SELECT 
+    datname AS database,
+    pg_size_pretty(pg_database_size(datname)) AS size
+FROM pg_database
+ORDER BY pg_database_size(datname) DESC;
+```
+
+
+Or,
+
+```
+postgres=# \l+
+```
+
+
+
+
+#### Check size of a tablespace:
+
+```
+SELECT 
+    spcname AS tablespace,
+    pg_size_pretty(pg_tablespace_size(spcname)) AS size
+FROM pg_tablespace;
+```
+
+
+
+#### Check size of a table:
+
+```
+SELECT 
+    relname AS table,
+    pg_size_pretty(pg_total_relation_size(relid)) AS total_size
+FROM pg_catalog.pg_statio_user_tables
+ORDER BY pg_total_relation_size(relid) DESC;
+
+```
+
+
+
+
+---
+---
+
+
+
 ### Database Export/Backup:
 
 - `-U` , --username=NAME :      connect as specified database user
