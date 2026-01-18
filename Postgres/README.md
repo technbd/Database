@@ -433,7 +433,7 @@ SELECT pg_size_pretty(pg_database_size(current_database()));
 ```
 SELECT pg_size_pretty(pg_database_size('postgres'));
 
-SELECT pg_size_pretty(pg_database_size('cdmsapp'));
+SELECT pg_size_pretty(pg_database_size('pagila'));
 ```
 
 
@@ -472,12 +472,12 @@ FROM pg_tablespace;
 #### Check size of a table:
 
 ```
-SELECT 
-    relname AS table,
-    pg_size_pretty(pg_total_relation_size(relid)) AS total_size
+SELECT
+  schemaname,
+  relname AS table_name,
+  pg_size_pretty(pg_total_relation_size(relid)) AS total_size
 FROM pg_catalog.pg_statio_user_tables
 ORDER BY pg_total_relation_size(relid) DESC;
-
 ```
 
 
@@ -507,6 +507,7 @@ ORDER BY pg_total_relation_size(relid) DESC;
 
 
 #### Single database backup:
+
 ```
 pg_dump -U postgres -d db1 > /home/db1_full_db.sql
 
@@ -528,37 +529,80 @@ pg_dump -U postgres -d db1 -F c -f /home/db1_full_dump.dump
 
 
 #### All database backup:
+
 To back up all databases in a PostgreSQL cluster, you can use the `pg_dumpall` utility. The `pg_dumpall` utility automatically includes **roles and tablespaces** in the backup. However, you can explicitly specify this by using the `--roles-only` or `--tablespaces-only` options if you only want to back up those objects. A single SQL file containing all databases and includes roles, tables, schemas, and permissions. 
 
 ```
-pg_dumpall -U postgres > /home/all_db_dump.sql
+pg_dumpall -U postgres > /home/postgres/all_db_dump.sql
 
 Or,
 
-pg_dumpall -U postgres -f /home/all_db_dump_01.sql
+pg_dumpall -U postgres -f /home/postgres/all_db_dump_01.sql
 ```
 
 
 
-#### Database specific table backup:
+#### Database specific table "Structure + Data" backup:
+
 You must include the schema name (like `public.employees`) if the table is not in the search path.
 
 - `-t` table, `--table=`table : Dump only tables (or views or sequences or foreign tables) matching table. 
 
 ```
-pg_dump -U postgres -d db1 --table=t1 -f /home/db1_t1_table_bk.sql
-
-pg_dump -U postgres -d db1 --table=public.t2 -f /home/db1_t2_table_bk.sql
+pagila=# \dt
+                    List of relations
+ Schema |       Name       |       Type        |  Owner
+--------+------------------+-------------------+----------
+ public | actor            | table             | postgres
+ public | address          | table             | postgres
+ public | category         | table             | postgres
+ public | city             | table             | postgres
+ public | country          | table             | postgres
+ public | customer         | table             | postgres
+ public | film             | table             | postgres
+ public | film_actor       | table             | postgres
+ public | film_category    | table             | postgres
+ public | inventory        | table             | postgres
+ public | language         | table             | postgres
+ public | payment          | partitioned table | postgres
+ public | payment_p2022_01 | table             | postgres
+ public | payment_p2022_02 | table             | postgres
+ public | payment_p2022_03 | table             | postgres
+ public | payment_p2022_04 | table             | postgres
+ public | payment_p2022_05 | table             | postgres
+ public | payment_p2022_06 | table             | postgres
+ public | payment_p2022_07 | table             | postgres
+ public | rental           | table             | postgres
+ public | staff            | table             | postgres
+ public | store            | table             | postgres
+(22 rows)
 ```
 
 
-_Backup Multiple Tables:_
+_Backup single table schema + data:_
 ```
-pg_dump -U postgres -d db1 --table=public.t1 --table=public.t2 -f /home/db1_t1_t2_table_bk.sql
+pg_dump -U postgres -d pagila --table=actor -f /home/postgres/pagila_actor_table_bk.sql
+
+pg_dump -U postgres -d pagila --table=public.city -f /home/postgres/pagila_city_table_bk.sql
+
+
+Or,
+
+pg_dump -U postgres -d pagila -t actor -f /home/postgres/pagila_actor_table_bk.sql
+
+pg_dump -U postgres -d pagila -t public.city -f /home/postgres/pagila_city_table_bk.sql
 ```
 
 
-#### Database schema backup:
+_Backup Multiple Tables schema + data:_
+```
+pg_dump -U postgres -d pagila -t actor -t city -f /home/postgres/pagila_actor_city_table_bk.sql
+```
+
+
+
+
+#### Database full schema backup:
 
 Backs up only the structure: tables, views, functions, sequences, etc.
 
@@ -567,14 +611,46 @@ Backs up only the structure: tables, views, functions, sequences, etc.
 
 _Full schema backup:_
 ```
-pg_dump -U postgres -d db1 --schema-only > /home/db1_schema_bk.sql
+pg_dump -U postgres -d pagila --schema-only > /home/postgres/pagila_full_schema_only_bk.sql
 ```
 
 
-_Specific Table Schema Backup:_
+
+#### Backup table structure only (no data):
+
+_Single Table Schema only:_
 ```
-pg_dump -U postgres -d db1 --table=public.t1 --schema-only -f /backups/db_t1_schema_bk.sql
+pg_dump -U postgres -d pagila -t actor --schema-only -f /home/postgres/pagila_actor_table_schema_only_bk.sql
 ```
+
+
+_Multiple Tables Schema only:_
+```
+pg_dump -U postgres -d pagila -t actor -t city --schema-only -f /home/postgres/pagila_actor_and_city_table_schema_only_bk.sql
+```
+
+
+
+
+#### Backup table data only (no schema):
+
+_Single Table Data only:_
+```
+pg_dump -U postgres -d pagila -t actor --data-only -f /home/postgres/pagila_actor_table_data_only_bk.sql
+```
+
+
+_Multiple Tables Data only:_
+```
+pg_dump -U postgres -d pagila -t actor -t city --data-only -f /home/postgres/pagila_actor_and_city_table_data_only_bk.sql
+```
+
+
+_Full tables data only:_
+```
+pg_dump -U postgres -d pagila --data-only > /home/postgres/pagila_full_tables_data_only_bk.sql
+```
+
 
 
 
@@ -582,6 +658,7 @@ pg_dump -U postgres -d db1 --table=public.t1 --schema-only -f /backups/db_t1_sch
 ### Database Restore:
 
 #### Single database Restore:
+
 ```
 psql -U postgres -d newdb1 < /home/db1_full_db.sql
 
@@ -597,37 +674,70 @@ pg_restore -U postgres -d newdb3 /home/db1_full_dump.dump
 ```
 
 
+
 #### Restore All Databases:
+
 ```
-psql -U postgres < /home/all_db_dump.sql
+psql -U postgres < /home/postgres/all_db_dump.sql
 
 Or,
 
-psql -U postgres -f /home/all_db_dump_01.sql
+psql -U postgres -f /home/postgres/all_db_dump_01.sql
 ```
-
-
-#### Restore the Table:
-
-```
-psql -U postgres -d db1 -f /home/db1_t2_table_bk.sql
-
-psql -U postgres -d db1 -f /home/db1_t1_t2_table_bk.sql
-```
-
-
 
 
 #### Database Schema Restore:
 
+_Full Schema Restore:_
 ```
-psql -U postgres -d db1 < /home/db1_schema_bk.sql
+psql -U postgres -d pagila1 < /home/postgres/pagila_full_schema_only_bk.sql
 ```
 
 
+_Single table schema-only restore:_
 ```
-psql -U postgres -d db1 < /home/db_t1_schema_bk.sql
+psql -U postgres -d pagila1 < /home/postgres/pagila_actor_table_schema_only_bk.sql
 ```
+
+
+_Multiple table schema-only restore:_
+```
+psql -U postgres -d pagila1 < /home/postgres/pagila_actor_and_city_table_schema_only_bk.sql
+```
+
+
+
+
+#### Restore the Table Schema + Data:
+
+_Restore table schema + data:_
+```
+psql -U postgres -d pagila1 -f /home/postgres/pagila_actor_table_bk.sql
+
+psql -U postgres -d pagila1 -f /home/postgres/pagila_actor_city_table_bk.sql
+```
+
+
+
+
+_Delete table data-only:_
+```
+TRUNCATE TABLE actor CASCADE;
+TRUNCATE TABLE city CASCADE;
+```
+
+
+
+_Single and Multiple table data-only restore:_
+```
+psql -U postgres -d pagila1 -f /home/postgres/pagila_actor_table_data_only_bk.sql
+
+psql -U postgres -d pagila1 -f /home/postgres/pagila_actor_and_city_table_data_only_bk.sql
+```
+
+
+
+
 
 
 
