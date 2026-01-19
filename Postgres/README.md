@@ -738,16 +738,101 @@ psql -U postgres -d pagila1 -f /home/postgres/pagila_actor_and_city_table_data_o
 
 
 
+---
+---
+
+
+### PostgreSQL Schema:
+
+A schema in PostgreSQL is a **logical namespace** inside a database. It helps you organize objects, avoid name conflicts, and control access.
+
+
+_Create User & Database:_
+```
+postgres=# create user pagila with encrypted password 'pagila';
+postgres=# create database pagila owner pagila;
+postgres=# \q
+```
+
+
+_Creating a schema:_
+```
+psql -U pagila -d pagila
+
+
+pagila=> create schema pagila;
+
+pagila=> \q
+```
+
+
+```
+psql -U pagila -d pagila
+
+pagila=> \dn
+      List of schemas
+  Name  |       Owner
+--------+-------------------
+ pagila | pagila
+ public | pg_database_owner
+(2 rows)
+```
+
+
+_Create table inside schema:_
+```
+pagila=> create table t1 (name char(20));
+
+Or,
+
+pagila=> create table pagila.t2 (name char(20));
+```
+
+
+```
+pagila=> \dt
+       List of relations
+ Schema | Name | Type  | Owner
+--------+------+-------+--------
+ pagila | t1   | table | pagila
+ pagila | t2   | table | pagila
+(2 rows)
+```
+
+
+_Or, rely on search_path:_
+- PostgreSQL uses `search_path` to decide where to create the table.
+- If `search_path` includes `pagila` first → table goes to `pagila`.
+
+```
+pagila=> alter database pagila set search_path to pagila, public;
+pagila=> \q
+```
+
+
+```
+pagila=> SHOW search_path;
+  search_path
+----------------
+ pagila, public
+(1 row)
+```
+
+
+
+_If moving tables between schemas:_
+```
+pagila=> alter table pagila.t1 set schema public;
+
+pagila=> alter table public.t1 set schema pagila;
+```
+
 
 
 
 
 ### Links:
 - [pg_dump options](https://www.postgresql.org/docs/current/app-pgdump.html)
-
-
-
-
 
 
 
